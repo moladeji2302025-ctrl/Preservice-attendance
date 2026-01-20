@@ -1,13 +1,23 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+'use client';
 
-export default async function Home() {
-  const session = await getServerSession(authOptions);
-  
-  if (session) {
-    redirect('/dashboard');
-  } else {
-    redirect('/auth/login');
-  }
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) {
+      router.push('/dashboard');
+    } else {
+      router.push('/auth/login');
+    }
+  }, [router]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  );
 }

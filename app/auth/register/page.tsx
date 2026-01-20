@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { addUser } from '@/lib/db/indexeddb';
+import { hashPassword, generateId, validateUserData } from '@/lib/auth/utils';
+import { User } from '@/lib/db/schema';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,31 +35,36 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate user data
+    const validation = validateUserData({
+      email: formData.email,
+      name: formData.name,
+      password: formData.password,
+    });
+
+    if (!validation.valid) {
+      setError(validation.errors.join(', '));
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-        }),
-      });
+      const hashedPassword = await hashPassword(formData.password);
+      
+      const newUser: User = {
+        id: generateId(),
+        email: formData.email,
+        name: formData.name,
+        password: hashedPassword,
+        role: formData.role,
+        createdAt: new Date().toISOString(),
+      };
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Registration failed');
-      } else {
-        router.push('/auth/login?registered=true');
-      }
+      await addUser(newUser);
+      router.push('/auth/login?registered=true');
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      setError('Failed to register. Email might already be in use.');
       console.error('Registration error:', error);
     } finally {
       setLoading(false);

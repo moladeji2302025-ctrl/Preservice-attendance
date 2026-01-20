@@ -1,15 +1,35 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import OnlineStatus from './OnlineStatus';
 
+interface UserSession {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 export default function Navbar() {
-  const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<UserSession | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const isActive = (path: string) => pathname === path;
+
+  const handleSignOut = () => {
+    localStorage.removeItem('currentUser');
+    router.push('/auth/login');
+  };
 
   return (
     <nav className="bg-white shadow-md">
@@ -54,18 +74,20 @@ export default function Navbar() {
           </div>
           <div className="flex items-center space-x-4">
             <OnlineStatus />
-            <div className="flex items-center space-x-3">
-              <div className="text-sm text-gray-700">
-                <div className="font-medium">{session?.user?.name}</div>
-                <div className="text-xs text-gray-500">{(session?.user as { role?: string })?.role}</div>
+            {user && (
+              <div className="flex items-center space-x-3">
+                <div className="text-sm text-gray-700">
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-xs text-gray-500">{user.role}</div>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                  Sign Out
+                </button>
               </div>
-              <button
-                onClick={() => signOut({ callbackUrl: '/auth/login' })}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-              >
-                Sign Out
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>

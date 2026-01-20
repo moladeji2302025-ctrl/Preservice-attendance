@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthProvider from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
@@ -10,7 +9,11 @@ import { generateId } from '@/lib/auth/utils';
 import { AttendanceRecord } from '@/lib/db/schema';
 
 function AttendanceContent() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<{id: string; name: string} | null>(null);
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) setUser(JSON.parse(userStr));
+  }, []);
   const router = useRouter();
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present');
   const [location, setLocation] = useState('');
@@ -26,11 +29,11 @@ function AttendanceContent() {
 
     try {
       const now = new Date();
-      const userId = (session?.user as { id?: string })?.id;
+      const userId = user?.id;
       const record: AttendanceRecord = {
         id: generateId(),
         userId: userId || '',
-        userName: session?.user?.name || '',
+        userName: user?.name || '',
         date: now.toISOString().split('T')[0],
         status,
         checkInTime: status === 'present' || status === 'late' ? now.toISOString() : undefined,

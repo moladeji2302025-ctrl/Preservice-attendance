@@ -1,15 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import AuthProvider from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
 import { getAllAttendance, getAllExcuses } from '@/lib/db/indexeddb';
 import { AttendanceRecord } from '@/lib/db/schema';
 
+interface UserSession {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 function DashboardContent() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<UserSession | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -21,6 +27,10 @@ function DashboardContent() {
   });
 
   useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
     loadData();
   }, []);
 
@@ -61,7 +71,7 @@ function DashboardContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome, {session?.user?.name}
+            Welcome, {user?.name}
           </h1>
           <p className="text-gray-600 mt-2">Track and manage attendance for your preservice community</p>
         </div>

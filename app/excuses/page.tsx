@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+
 import AuthProvider from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
 import { addExcuse, getAllExcuses, getAttendanceByUser } from '@/lib/db/indexeddb';
@@ -9,7 +9,11 @@ import { generateId } from '@/lib/auth/utils';
 import { Excuse, AttendanceRecord } from '@/lib/db/schema';
 
 function ExcusesContent() {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<{id: string; name: string} | null>(null);
+  useEffect(() => {
+    const userStr = localStorage.getItem('currentUser');
+    if (userStr) setUser(JSON.parse(userStr));
+  }, []);
   const [excuses, setExcuses] = useState<Excuse[]>([]);
   const [absences, setAbsences] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,7 @@ function ExcusesContent() {
   const loadData = useCallback(async () => {
     try {
       const allExcuses = await getAllExcuses();
-      const userId = (session?.user as { id?: string })?.id;
+      const userId = user?.id;
       const userExcuses = allExcuses.filter(e => e.userId === userId);
       setExcuses(userExcuses);
 
@@ -40,13 +44,13 @@ function ExcusesContent() {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (session) {
+    if (user) {
       loadData();
     }
-  }, [session, loadData]);
+  }, [user, loadData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +67,8 @@ function ExcusesContent() {
 
       const excuse: Excuse = {
         id: generateId(),
-        userId: (session?.user as { id?: string })?.id || '',
-        userName: session?.user?.name || '',
+        userId: user?.id || '',
+        userName: user?.name || '',
         attendanceId: formData.attendanceId,
         reason: formData.reason,
         date: selectedAbsence.date,

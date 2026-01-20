@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getUserByEmail, initDB } from '@/lib/db/indexeddb';
+import { verifyPassword } from '@/lib/auth/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,17 +19,36 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
+      // Initialize DB
+      await initDB();
+      
+      // Get user from IndexedDB
+      const user = await getUserByEmail(email);
 
-      if (result?.error) {
-        setError('Invalid email or password');
-      } else {
-        router.push('/dashboard');
+      if (!user) {
+        setError('No user found with this email');
+        setLoading(false);
+        return;
       }
+
+      // Verify password
+      const isValid = await verifyPassword(password, user.password);
+
+      if (!isValid) {
+        setError('Invalid password');
+        setLoading(false);
+        return;
+      }
+
+      // Store user session in localStorage
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }));
+
+      router.push('/dashboard');
     } catch (error) {
       setError('An error occurred. Please try again.');
       console.error('Login error:', error);
