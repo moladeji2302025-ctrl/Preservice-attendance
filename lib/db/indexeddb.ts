@@ -10,12 +10,12 @@ interface AttendanceDB extends DBSchema {
   attendance: {
     key: string;
     value: AttendanceRecord;
-    indexes: { 'by-user': string; 'by-date': string; 'by-synced': number };
+    indexes: { 'by-user': string; 'by-date': string; 'by-synced': IDBValidKey };
   };
   excuses: {
     key: string;
     value: Excuse;
-    indexes: { 'by-user': string; 'by-attendance': string; 'by-synced': number };
+    indexes: { 'by-user': string; 'by-attendance': string; 'by-synced': IDBValidKey };
   };
   syncQueue: {
     key: string;
@@ -108,7 +108,8 @@ export async function getAttendanceByUser(userId: string): Promise<AttendanceRec
 
 export async function getUnsyncedAttendance(): Promise<AttendanceRecord[]> {
   const db = await initDB();
-  return await db.getAllFromIndex('attendance', 'by-synced', 0);
+  const all = await db.getAll('attendance');
+  return all.filter(record => !record.synced);
 }
 
 export async function getAllAttendance(): Promise<AttendanceRecord[]> {
@@ -134,7 +135,8 @@ export async function getExcusesByUser(userId: string): Promise<Excuse[]> {
 
 export async function getUnsyncedExcuses(): Promise<Excuse[]> {
   const db = await initDB();
-  return await db.getAllFromIndex('excuses', 'by-synced', 0);
+  const all = await db.getAll('excuses');
+  return all.filter(excuse => !excuse.synced);
 }
 
 export async function getAllExcuses(): Promise<Excuse[]> {
